@@ -13,7 +13,7 @@
             <div class="p-4" id="directoryContent">
                 <nav class="mb-4">
                     <ol class="flex flex-wrap items-center space-x-2 text-gray-500" id="breadcrumb">
-                        <li><a href="#" class="hover:text-gray-700" data-path=""><i class="far fa-folder mr-1"></i>ramatechnologies.in</a></li>
+                        <li><a href="#" class="hover:text-gray-700" data-path=""><i class="far fa-folder mr-1"></i>Bharat It Ltd.</a></li>
                     </ol>
                 </nav>
                 <div id="main-folders" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -56,7 +56,7 @@
         function updateBreadcrumb(path) {
             const breadcrumb = document.getElementById('breadcrumb');
             breadcrumb.innerHTML = `
-                <li><a href="#" class="hover:text-gray-700" data-path=""><i class="far fa-folder mr-1"></i>ramatechnologies.in</a></li>
+                <li><a href="#" class="hover:text-gray-700" data-path=""><i class="far fa-folder mr-1"></i>Bharat It Ltd.</a></li>
                 ${path.map((item, index) => `
                     <li class="flex items-center">
                         <svg class="w-3 h-3 mx-1" fill="currentColor" viewBox="0 0 20 20">
