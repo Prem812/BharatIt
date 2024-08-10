@@ -44,7 +44,7 @@ git clone https://github.com/Prem812/BharatIt.git
 Change Directory
 
 ```
-cd OpenCRM
+cd BharatIt
 ```
 
 
