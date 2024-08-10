@@ -17,8 +17,6 @@ use Google\Analytics\Data\V1beta\DateRange;
 use Google\Analytics\Data\V1beta\Dimension;
 use Google\Analytics\Data\V1beta\Metric;
 use Google\Analytics\Data\V1beta\RunReportRequest;
-use Google_Client;
-use Google_Service_AdSense;
 
 class StatsDashboardOverview extends BaseWidget
 {
@@ -35,8 +33,7 @@ class StatsDashboardOverview extends BaseWidget
         $weather = $this->getWeatherInfo();
         $currentDateTime = Carbon::now('Asia/Kolkata');
         $githubInfo = $this->getGitHubInfo();
-        $analyticsData = $this->getGoogleAnalyticsData();
-        $adSenseData = $this->getGoogleAdSenseData();
+        // $analyticsData = $this->getGoogleAnalyticsData();
 
         return [
             Card::make('Today\'s Attendance', $todayAttendance['present'] . '/' . $todayAttendance['total'])
@@ -48,12 +45,6 @@ class StatsDashboardOverview extends BaseWidget
                     'class' => 'attendance-stat',
                     'data-tooltip' => $this->getPresentEmployeesInfo(),
                 ]),
-
-            // Card::make('Linkedin Followers/Connections', '149/168')
-            //     ->description('Last updated: ' . date('Y-m-d'))
-            //     ->descriptionIcon('heroicon-m-arrow-trending-up')
-            //     ->chart([7, 2, 10, 3, 15, 4, 17])
-            //     ->color('success'),
 
             Card::make('Weather Update', $weather['temperature'] . '°C')
                 ->description($weather['description'] . ' in ' . $weather['city'])  // Modified this line
@@ -71,18 +62,6 @@ class StatsDashboardOverview extends BaseWidget
                 ->descriptionIcon('heroicon-m-code-bracket')
                 ->chart([$githubInfo['contribution_days'], Carbon::now()->daysInMonth - $githubInfo['contribution_days']])
                 ->color('danger'),
-
-            Card::make('Website Visitors (Last 7 Days)', $analyticsData['totalActiveUsers'])
-                ->description($analyticsData['totalPageViews'] . ' page views, ' . $analyticsData['totalSessions'] . ' sessions')
-                ->descriptionIcon('heroicon-m-chart-bar')
-                ->chart($analyticsData['dailyActiveUsers'])
-                ->color('success'),
-
-            Card::make('AdSense Earnings (Last 30 Days)', '$' . number_format($adSenseData['totalEarnings'], 2))
-                ->description('Daily earnings trend')
-                ->descriptionIcon('heroicon-m-currency-dollar')
-                ->chart($adSenseData['dailyEarnings'])
-                ->color('success'),
         ];
     }
 
@@ -171,157 +150,11 @@ class StatsDashboardOverview extends BaseWidget
         return 'Waidhan'; // Default fallback
     }
 
-
-    // get google analytics data
-    protected function getGoogleAnalyticsData(): array
-    {
-        try {
-            $client = new BetaAnalyticsDataClient([
-                'credentials' => storage_path('app/analytics/service-account-credentials.json'),
-            ]);
-    
-            $property_id = 'YOUR_GA4_PROPERTY_ID';
-    
-            $response = $client->runReport([
-                'property' => 'properties/' . $property_id,
-                'dateRanges' => [
-                    new DateRange([
-                        'start_date' => '7daysAgo',
-                        'end_date' => 'today',
-                    ]),
-                ],
-                'dimensions' => [
-                    new Dimension(['name' => 'date']),
-                ],
-                'metrics' => [
-                    new Metric(['name' => 'activeUsers']),
-                    new Metric(['name' => 'screenPageViews']),
-                    new Metric(['name' => 'sessions']),
-                ],
-            ]);
-    
-            $dailyData = [];
-            $totals = [
-                'activeUsers' => 0,
-                'pageViews' => 0,
-                'sessions' => 0,
-            ];
-    
-            foreach ($response->getRows() as $row) {
-                $date = $row->getDimensionValues()[0]->getValue();
-                $activeUsers = (int) $row->getMetricValues()[0]->getValue();
-                $pageViews = (int) $row->getMetricValues()[1]->getValue();
-                $sessions = (int) $row->getMetricValues()[2]->getValue();
-    
-                $dailyData[] = $activeUsers;
-    
-                $totals['activeUsers'] += $activeUsers;
-                $totals['pageViews'] += $pageViews;
-                $totals['sessions'] += $sessions;
-            }
-    
-            return [
-                'dailyActiveUsers' => $dailyData,
-                'totalActiveUsers' => $totals['activeUsers'],
-                'totalPageViews' => $totals['pageViews'],
-                'totalSessions' => $totals['sessions'],
-            ];
-        } catch (\Exception $e) {
-            Log::error('Error fetching Google Analytics data: ' . $e->getMessage());
-            return [
-                'dailyActiveUsers' => [],
-                'totalActiveUsers' => 0,
-                'totalPageViews' => 0,
-                'totalSessions' => 0,
-            ];
-        }
-    }
-
-    // get google adsense data
-    protected function getGoogleAdSenseData(): array
-    {
-        try {
-            $client = new Google_Client();
-            $client->setAuthConfig(storage_path('app/adsense/client_secrets.json'));
-            $client->addScope(Google_Service_AdSense::ADSENSE_READONLY);
-
-            // Load previously authorized token from a file, if it exists.
-            // The file token.json stores the user's access and refresh tokens.
-            $tokenPath = storage_path('app/adsense/token.json');
-            if (file_exists($tokenPath)) {
-                $accessToken = json_decode(file_get_contents($tokenPath), true);
-                $client->setAccessToken($accessToken);
-            }
-
-            // If there is no previous token or it's expired.
-            if ($client->isAccessTokenExpired()) {
-                // Refresh the token if possible, else fetch a new one.
-                if ($client->getRefreshToken()) {
-                    $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
-                } else {
-                    // Request authorization from the user.
-                    $authUrl = $client->createAuthUrl();
-                    printf("Open the following link in your browser:\n%s\n", $authUrl);
-                    print 'Enter verification code: ';
-                    $authCode = trim(fgets(STDIN));
-
-                    // Exchange authorization code for an access token.
-                    $accessToken = $client->fetchAccessTokenWithAuthCode($authCode);
-                    $client->setAccessToken($accessToken);
-
-                    // Save the token to a file.
-                    if (!file_exists(dirname($tokenPath))) {
-                        mkdir(dirname($tokenPath), 0700, true);
-                    }
-                    file_put_contents($tokenPath, json_encode($client->getAccessToken()));
-                }
-            }
-
-            $service = new Google_Service_AdSense($client);
-
-            // Calculate date range (last 30 days)
-            $endDate = date('Y-m-d');
-            $startDate = date('Y-m-d', strtotime('-30 days'));
-
-            $optParams = [
-                'dateRange' => 'CUSTOM',
-                'startDate.year' => substr($startDate, 0, 4),
-                'startDate.month' => substr($startDate, 5, 2),
-                'startDate.day' => substr($startDate, 8, 2),
-                'endDate.year' => substr($endDate, 0, 4),
-                'endDate.month' => substr($endDate, 5, 2),
-                'endDate.day' => substr($endDate, 8, 2),
-            ];
-
-            $report = $service->accounts_reports->generate('accounts/pub-XXXXXXXXXXXXXXXX', $optParams);
-
-            $totalEarnings = 0;
-            $dailyEarnings = [];
-
-            foreach ($report->getRows() as $row) {
-                $earnings = $row[1]; // Assuming earnings are in the second column
-                $totalEarnings += $earnings;
-                $dailyEarnings[] = $earnings;
-            }
-
-            return [
-                'totalEarnings' => $totalEarnings,
-                'dailyEarnings' => $dailyEarnings,
-            ];
-        } catch (\Exception $e) {
-            Log::error('Error fetching Google AdSense data: ' . $e->getMessage());
-            return [
-                'totalEarnings' => 0,
-                'dailyEarnings' => [],
-            ];
-        }
-    }
-
     // get github account information
     protected function getGitHubInfo(): array
     {
         $username = 'Prem812';  // Replace with your GitHub username
-        $token = '';  // Replace with your new fine-grained token
+        $token = env('GITHUB_TOKEN');
     
         $headers = [
             'Authorization' => 'token ' . $token,
@@ -388,7 +221,7 @@ class StatsDashboardOverview extends BaseWidget
     // get weather info
     protected function getWeatherInfo(): array
     {
-        $apiKey = '038e52e58da2766af1f820a6e3a42150';
+        $apiKey = env('OPENWEATHERMAP_API_KEY');
         $city = $this->getCurrentCity();
     
         try {

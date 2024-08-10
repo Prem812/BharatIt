@@ -8,8 +8,6 @@
         "php": "^8.2",
         "bezhansalleh/filament-shield": "^3.2",
         "filament/filament": "^3.2",
-        "google/analytics-data": "^0.17.1",
-        "google/apiclient": "^2.16",
         "guzzlehttp/guzzle": "^7.8",
         "laravel/framework": "^11.9",
         "laravel/tinker": "^2.9",
