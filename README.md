@@ -100,13 +100,6 @@ Migrate and Seed Database
 php artisan migrate:fresh --seed
 ```
 
-
-Optionally, you can create the dummy data by running the seeder as -
-
-```php artisan db:seed
-```
-
-
 Run the project on your local machine
 
 ```
